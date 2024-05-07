@@ -1,0 +1,20 @@
+PantallaInicial {
+    margin:3;
+    align: center middle;
+    border: heavy white;
+    padding:1;
+}
+
+#send-btn{
+    margin-left:1;
+    margin-top:1;
+}
+
+Input{
+    margin-top:1;
+    overflow: auto auto;
+}
+
+Label{
+    margin-left:1;
+}
