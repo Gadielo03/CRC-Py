@@ -1,0 +1,8 @@
+PantallaInicial {
+    layout: grid;
+}
+
+#estadoConexion {
+    content-align: center middle;
+    text-align: center;
+}
