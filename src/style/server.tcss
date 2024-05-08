@@ -1,8 +1,36 @@
 PantallaInicial {
-    layout: grid;
+    align: center middle;
+    margin: 3;
+    padding: 1;
+}
+
+#contenedorInicial {
+    border: heavy white;
+    align: center middle;
+    height: 15;
+    width: auto;
+    margin: 1;
+    padding: 1;
+}
+
+.info {
+    width: 40;
+    text-align: center;
 }
 
 #estadoConexion {
-    content-align: center middle;
-    text-align: center;
+    padding: 1;
+}
+
+#hostIp {
+}
+
+#hostPort {
+}
+
+#indicadorEspera {
+    color: red;
+    height: 1;
+    margin: 3;
+    overflow: auto auto;
 }
