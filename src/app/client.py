@@ -99,7 +99,7 @@ class PantallaInicial(Static):
         textinput = self.query_one("#text", Input)
 
         ip = ipinput.value
-        port = portinput.value
+        port = int(portinput.value)
         text = textinput.value
 
         #self.mount(Label(ip))
@@ -111,7 +111,7 @@ class PantallaInicial(Static):
             s = socket.socket()
 
             # connect to the server
-            s.connect((ip , port))
+            s.connect((ip, port))
 
             data = (''.join(format(ord(x), 'b') for x in text))
             # print("Entered data in binary format :", data) todo
@@ -125,7 +125,7 @@ class PantallaInicial(Static):
             #print("Received feedback from server :", s.recv(1024).decode())
 
             # close the connection
-            s.close()
+            #s.close()
         except:
             self.mount(Label("ERROR DE CONEXION"))
         else:
