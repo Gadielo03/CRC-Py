@@ -9,11 +9,11 @@ class PantallaInicial(Static):
     def compose(self) -> ComposeResult:
             yield Label("INGRESE LOS DATOS :")
             yield Input(id="ip",placeholder="IP",type="text")
-            yield Input(id="port",placeholder="PORT", type="number",max_length=4)
+            yield Input(id="port",placeholder="PORT", type="number",max_length=5)
             yield Input(id="text",placeholder="TEXT", type="text")
             yield Button(id="send-btn",label="ENVIAR")
 
-class serverApp(App):
+class ClientApp(App):
     """Manejo de la aplicacion"""
     CSS_PATH = "../style/client.tcss"
     BINDINGS = [("q", "quit", "Salir de la aplicación"), ("d", "toggle_dark", "Activar o desactivar el modo oscuro")]
@@ -32,5 +32,5 @@ class serverApp(App):
 
 
 if __name__ == "__main__":
-    app = serverApp()
+    app = ClientApp()
     app.run()
