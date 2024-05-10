@@ -77,6 +77,36 @@ def encodeData(data, key):
     codeword = data + remainder
     return codeword
 
+class MessagesScreen(ModalScreen):
+
+    BINDINGS = [("q", "quit", "Salir de la aplicación"), ("d", "toggle_dark", "Activar o desactivar el modo oscuro")]
+
+    def compose(self) -> ComposeResult:
+        yield Header()
+        yield ScrollableContainer(
+            Label("Mensajeria :)"),
+            Input(id="msg-input",placeholder="Mensaje"),
+            Container(
+            Button(id="snd-msg-btn",label="Enviar"),
+                    Label("  "),
+                    Button(id="ext-btn",label="Salir"),
+                    id="msg-btn-Container"),
+            id="msg-Container"
+        )
+        yield Footer()
+
+    def action_toggle_dark(self) -> None:
+        self.app.dark = not self.app.dark
+
+    def action_quit(self) -> None:
+        quit()
+
+    @on(Button.Pressed)
+    def on_button_pressed(self,event: Button.Pressed):
+        if event.button.id == "snd-msg-btn":
+            hola = "hola"
+        elif event.button.id == "ext-btn":
+            self.app.pop_screen()
 
 class ErrorScreen(ModalScreen):
     def compose(self) -> ComposeResult:
@@ -91,39 +121,35 @@ class ErrorScreen(ModalScreen):
         if event.button.id == "close-btn":
             self.app.pop_screen()
 
+
 class InitialScreen(Static):
     """Widget de espera de Conexion"""
 
     def compose(self) -> ComposeResult:
-        yield Label("INGRESE LOS DATOS :")
-        yield Input(id="ip", placeholder="IP", type="text")
-        yield Input(id="port", placeholder="PORT", type="number", max_length=5)
-        yield Input(id="text", placeholder="TEXT", type="text")
-        yield Button(id="send-btn", label="ENVIAR", name="BOTONEnviar")
-        yield Label(id="output")
+        yield ScrollableContainer(
+            Label("INGRESE LOS DATOS :"),
+            Input(id="ip", placeholder="IP", type="text"),
+            Input(id="port", placeholder="PORT", type="number", max_length=5),
+            Button(id="send-btn", label="Conectar"),
+            Label(id="output"),
+        )
+
 
     @on(Button.Pressed)
     def on_button_Pressed(self, event: Button.Pressed):
         if event.button.id == "send-btn":
             ipinput = self.query_one("#ip", Input)
             portinput = self.query_one("#port", Input)
-            textinput = self.query_one("#text", Input)
-
-            ip = ''
-            port = 0
-            text = ''
-
-            ip = str(ipinput.value)
-            port = int(portinput.value)
-            text = str(textinput.value)
-
 
             try:
+                ip = str(ipinput.value)
+                port = int(portinput.value)
+
                 # Create a socket object
                 s = socket.socket()
                 # connect to the server
                 s.connect((ip, port))
-                data = (''.join(format(ord(x), 'b') for x in text))
+                data = (''.join(format(ord(x), 'b') for x in """""aqui va el texto datos etc,"""))
                 # print("Entered data in binary format :", data) todo
                 key = "1001"
                 ans = encodeData(data, key)
@@ -136,7 +162,7 @@ class InitialScreen(Static):
             except:
                 self.app.push_screen(ErrorScreen())
             else:
-                self.mount(Label("MENSAJE ENVIADO"))
+                self.app.push_screen(MessagesScreen())
 
 
 class ClientApp(App):

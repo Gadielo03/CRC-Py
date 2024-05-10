@@ -12,7 +12,6 @@
     padding:1;
 }
 
-
 #send-btn , #close-btn{
     margin-left:1;
     margin-top:1;
@@ -25,4 +24,22 @@ Input{
 
 Label{
     margin-left:1;
+}
+
+#msg-input{
+    height: 30vh
+
+}
+
+#msg-Container{
+    margin:3;
+    align: center middle;
+    border: heavy white;
+    padding:1;
+}
+
+#msg-btn-Container{
+    layout: horizontal;
+    margin-top:2;
+    margin-left:1
 }
