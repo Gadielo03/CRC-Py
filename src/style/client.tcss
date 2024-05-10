@@ -1,11 +1,19 @@
-PantallaInicial {
+#initial-container{
     margin:3;
     align: center middle;
     border: heavy white;
     padding:1;
 }
 
-#send-btn{
+#error-container{
+    margin:6;
+    align: center middle;
+    border: heavy red;
+    padding:1;
+}
+
+
+#send-btn , #close-btn{
     margin-left:1;
     margin-top:1;
 }

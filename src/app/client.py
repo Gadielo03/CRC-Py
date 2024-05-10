@@ -1,7 +1,8 @@
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer
-from textual.widgets import Header, Footer, Input, Button, Label,Static
+from textual.widgets import Header, Footer, Input, Button, Label, Static
+from textual.screen import ModalScreen
 from textual.containers import Container
 # Import socket module
 import socket
@@ -77,59 +78,66 @@ def encodeData(data, key):
     return codeword
 
 
-
-
-
-class PantallaInicial(Static):
-    """Widget de espera de Conexion"""
+class ErrorScreen(ModalScreen):
     def compose(self) -> ComposeResult:
-            yield Label("INGRESE LOS DATOS :")
-            yield Input(id="ip",placeholder="IP",type="text")
-            yield Input(id="port",placeholder="PORT", type="number",max_length=5)
-            yield Input(id="text",placeholder="TEXT", type="text")
-            yield Button(id="send-btn",label="ENVIAR",)
-            yield Label(id="output")
-
-
+        yield Container(
+            Label("Error al Conectar"),
+            Button(id="close-btn",label="Cerrar"),
+            id="error-container"
+        )
 
     @on(Button.Pressed)
-    def handlesubmit(self):
-        ipinput = self.query_one("#ip", Input)
-        portinput = self.query_one("#port", Input)
-        textinput = self.query_one("#text", Input)
+    def on_button_click(self,event: Button.Pressed):
+        if event.button.id == "close-btn":
+            self.app.pop_screen()
 
-        ip = ipinput.value
-        port = int(portinput.value)
-        text = textinput.value
+class InitialScreen(Static):
+    """Widget de espera de Conexion"""
 
-        #self.mount(Label(ip))
-        #self.mount(Label(port))
-        #self.mount(Label(text))
+    def compose(self) -> ComposeResult:
+        yield Label("INGRESE LOS DATOS :")
+        yield Input(id="ip", placeholder="IP", type="text")
+        yield Input(id="port", placeholder="PORT", type="number", max_length=5)
+        yield Input(id="text", placeholder="TEXT", type="text")
+        yield Button(id="send-btn", label="ENVIAR", name="BOTONEnviar")
+        yield Label(id="output")
 
-        try:
-            # Create a socket object
-            s = socket.socket()
+    @on(Button.Pressed)
+    def on_button_Pressed(self, event: Button.Pressed):
+        if event.button.id == "send-btn":
+            ipinput = self.query_one("#ip", Input)
+            portinput = self.query_one("#port", Input)
+            textinput = self.query_one("#text", Input)
 
-            # connect to the server
-            s.connect((ip, port))
+            ip = ''
+            port = 0
+            text = ''
 
-            data = (''.join(format(ord(x), 'b') for x in text))
-            # print("Entered data in binary format :", data) todo
-            key = "1001"
+            ip = str(ipinput.value)
+            port = int(portinput.value)
+            text = str(textinput.value)
 
-            ans = encodeData(data, key)
-            #print("Encoded data to be sent to server in binary format :", ans)
-            s.sendto(ans.encode(), (ip, port))
 
-            # receive data from the server
-            #print("Received feedback from server :", s.recv(1024).decode())
+            try:
+                # Create a socket object
+                s = socket.socket()
+                # connect to the server
+                s.connect((ip, port))
+                data = (''.join(format(ord(x), 'b') for x in text))
+                # print("Entered data in binary format :", data) todo
+                key = "1001"
+                ans = encodeData(data, key)
+                #print("Encoded data to be sent to server in binary format :", ans)
+                s.sendto(ans.encode(), (ip, port))
+                # receive data from the server
+                #print("Received feedback from server :", s.recv(1024).decode())
+                # close the connection
+                s.close()
+            except:
+                self.app.push_screen(ErrorScreen())
+            else:
+                self.mount(Label("MENSAJE ENVIADO"))
 
-            # close the connection
-            #s.close()
-        except:
-            self.mount(Label("ERROR DE CONEXION"))
-        else:
-            self.mount(Label("MENSAJE ENVIADO"))
 
 class ClientApp(App):
     """Manejo de la aplicacion"""
@@ -139,9 +147,7 @@ class ClientApp(App):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Footer()
-        yield ScrollableContainer(PantallaInicial())
-
-
+        yield ScrollableContainer(InitialScreen(), id="initial-container")
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
