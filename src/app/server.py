@@ -6,19 +6,14 @@ import socket
 import threading as thrd
 
 
+
 class PantallaInicial(Static):
     """Widget de espera de Conexion"""
 
-    def getIpAddress(self) -> str:
-        #TODO: Implement this method but for Windows
-        """Gets the IP address of the host"""
-        ipv4 = os.popen('ip addr').read().split("inet ")[2].split("/")[0]
-        return ipv4
+
 
     def awaitingConnection(self):
-        s = socket.socket()
-        port = 1337
-        s.bind((self.getIpAddress(), port))
+
         s.listen(5)
         c, addr = s.accept()
         if addr:
@@ -27,7 +22,8 @@ class PantallaInicial(Static):
             #TODO: Implement this method
 
     def compose(self) -> ComposeResult:
-        urName = self.getIpAddress()
+        # urName = self.getIpAddress()
+        urName = '127.0.0.1'
         yield Container(
             Label("ESPERANDO UNA CONEXIÓN", classes="info", id="estadoConexion"),
             Label("IP: " + urName, classes="info", id="hostIp"),
@@ -57,5 +53,9 @@ class serverApp(App):
 
 
 if __name__ == "__main__":
+    s = socket.socket()
+    port = 1337
+    # s.bind((self.getIpAddress(), port))
+    s.bind(('127.0.0.1', port))
     app = serverApp()
     app.run()
