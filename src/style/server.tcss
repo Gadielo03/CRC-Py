@@ -1,4 +1,4 @@
-PantallaInicial {
+InitialScreen {
     align: center middle;
     margin: 3;
     padding: 1;
@@ -13,9 +13,21 @@ PantallaInicial {
     padding: 1;
 }
 
+#error-container{
+    margin:6;
+    align: center middle;
+    border: heavy red;
+    padding:1;
+}
+
 .info {
     width: 40;
     text-align: center;
+}
+
+#close-btn{
+    margin-left:1;
+    margin-top:1;
 }
 
 #estadoConexion {

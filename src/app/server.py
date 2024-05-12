@@ -1,12 +1,15 @@
+from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer, Container
-from textual.widgets import Header, Footer, LoadingIndicator, Label, Static
+from textual.widgets import Header, Footer, LoadingIndicator, Button, Label, Static
+from textual.screen import ModalScreen
 import os
 import platform
 import socket
 import argparse
 import re
-import threading as thrd
+import asyncio
+
 
 """Functions for the classes"""
 
@@ -29,7 +32,6 @@ def getWindowsIp() -> str:
 
 
 def getIpAddress() -> str:
-    # TODO: Implement this method but for Windows
     """Gets the IP address of the host"""
     # Check what OS is Server running
     whoAreWe = getOS()
@@ -47,28 +49,90 @@ def getIpAddress() -> str:
     return ipv4
 
 
-def awaitingConnection():
-    s.listen(5)
-    c, addr = s.accept()
-    if addr:
-        print("Conexión establecida con: ", addr)
-        c.close()
-        #TODO: Implement this method
+class ErrorScreen(ModalScreen):
+    def compose(self) -> ComposeResult:
+        yield Container(
+            Label("Error al Conectar"),
+            Button(id="close-btn", label="Cerrar"),
+            id="error-container"
+        )
+
+    @on(Button.Pressed)
+    def on_button_click(self, event: Button.Pressed):
+        if event.button.id == "close-btn":
+            self.app.pop_screen()
 
 
-class PantallaInicial(Static):
+class MessagesScreen(ModalScreen):
+    BINDINGS = [("q", "quit", "Salir de la aplicación"), ("d", "toggle_dark", "Activar o desactivar el modo oscuro")]
+
+    def compose(self) -> ComposeResult:
+        yield Header()
+        yield ScrollableContainer(
+            Label("Mensajes Recibidos 🤩"),
+            id="msg-Container"
+        )
+        yield Footer()
+
+    def action_toggle_dark(self) -> None:
+        self.app.dark = not self.app.dark
+
+    def action_quit(self) -> None:
+        quit()
+
+
+class InitialScreen(Static):
     """Initial Screen for connections"""
+    server_task = None
 
     def compose(self) -> ComposeResult:
         urName = getIpAddress()
+        label = Label("ESPERANDO UNA CONEXIÓN", classes="info", id="estadoConexion")
+        indicator = LoadingIndicator(id="indicadorEspera")
+
         yield Container(
-            Label("ESPERANDO UNA CONEXIÓN", classes="info", id="estadoConexion"),
+            label,
             Label("IP: " + urName, classes="info", id="hostIp"),
             Label("PUERTO: " + str(port), classes="info", id="hostPort"),
-            LoadingIndicator(id="indicadorEspera"),
+            indicator,
             id="contenedorInicial",
         )
-        thrd.Thread(target=awaitingConnection).start()
+
+    async def awaiting_connection(self):
+        """Asynchronously listens for incoming connections and updates the UI."""
+        s.listen(5)
+
+        while True:  # Main loop
+            try:
+                client, addr = await asyncio.to_thread(s.accept)
+                await self.app.push_screen(MessagesScreen())
+                client.send("Connection established".encode())
+
+                # Handle connection in a separate coroutine
+                await asyncio.create_task(self.handle_connection(client))
+
+            except:
+                await self.app.push_screen(ErrorScreen())
+
+    async def handle_connection(self, client: socket.socket):
+        """Coroutine to manage individual connections."""
+        try:
+            pass
+        finally:
+            client.close()
+
+    def on_mount(self):
+        self.server_task = asyncio.create_task(self.awaiting_connection())
+
+    def action_quit(self) -> None:
+        self.server_task.cancel()  # Cancel the server task
+        try:
+            s.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass  # Ignore errors if the socket is already closed
+        finally:
+            s.close()
+        self.app.exit()
 
 
 class ServerApp(App):
@@ -79,20 +143,19 @@ class ServerApp(App):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Footer()
-        yield Container(PantallaInicial())
+        yield Container(InitialScreen())
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
 
     def action_quit(self) -> None:
-        thrd.Thread(target=s.close()).start()
         quit()
 
 
 if __name__ == "__main__":
     #Argument parsing
     entry = argparse.ArgumentParser("Server side of the crc app")
-    entry.add_argument("--port", type=int, default=1337, help="Change the port of the server. Default is 1337")
+    entry.add_argument("--port", "-p", type=int, default=1337, help="Change the port of the server. Default is 1337")
 
     #Parse the arguments
     args = entry.parse_args()
