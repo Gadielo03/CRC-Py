@@ -1,12 +1,48 @@
+import argparse
+
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer
 from textual.widgets import Header, Footer, Input, Button, Label, Static
 from textual.screen import ModalScreen
 from textual.containers import Container
+import os
+import platform
+import re
 # Import socket module
 import socket
+def getWindowsIp() -> str:
+    """Gets the IP address of the host in Windows"""
+    ipv4_pattern = re.compile(r"IPv4.*: (\d+\.\d+\.\d+\.\d+)")
+    output = os.popen('ipconfig').read()
+    match = ipv4_pattern.search(output)
+    if match:
+        return match.group(1)
+    else:
+        return "127.0.0.1"
 
+
+def getIpAddress() -> str:
+    """Gets the IP address of the host"""
+    # Check what OS is Server running
+    whoAreWe = getOS()
+    ipv4 = ""
+    if whoAreWe == "Linux":
+        ipv4 = os.popen('ip addr').read().split("inet ")[2].split("/")[0]
+        pass
+    elif whoAreWe == "Windows":
+        ipv4 = getWindowsIp()
+        pass
+    elif whoAreWe == "Darwin":
+        ipv4 = os.popen('ifconfig | grep "inet "').read().split("inet ")[2].split(" ")[0]
+        pass
+
+    return ipv4
+
+def getOS() -> str:
+    """Gets the OS of the host"""
+    osName = platform.system()
+    return osName
 
 def xor(a, b):
     # initialize result
@@ -82,9 +118,10 @@ class ConnectScreen(ModalScreen):
         yield ScrollableContainer(
             Label("Agregar Amigo :)"),
             Input(placeholder="IP",id="input-ip"),
-            Input(placeholder="PUERTO",id="input-puerto"),
+            Input(placeholder="PUERTO",id="input-port"),
+            Container(
             Button(id="connect-btn", label="Conectar"),
-            Button(id="close-btn", label="Cerrar"),
+            Button(id="close-btn", label="Cerrar"),id="connect-btns-container"),
             id="connect-container"
         )
 
@@ -92,6 +129,21 @@ class ConnectScreen(ModalScreen):
     def on_button_click(self, event: Button.Pressed):
         if event.button.id == "close-btn":
             self.app.pop_screen()
+        elif( event.button.id == "connect-btn"):
+            ipinput = self.query_one('#input-ip')
+            portinput = self.query_one('#input-port')
+            try :
+                ip = str(ipinput.value)
+                port = int(portinput.value)
+
+                # Create a socket object
+                s = socket.socket()
+                # connect to the server
+                s.connect((ip, port))
+            except:
+                s.close()
+                self.app.push_screen(ErrorScreen())
+
 
 class ErrorScreen(ModalScreen):
     def compose(self) -> ComposeResult:
@@ -111,9 +163,13 @@ class InitialScreen(Static):
     """Widget de espera de Conexion"""
 
     def compose(self) -> ComposeResult:
+
+        label = Label("ESPERANDO UNA CONEXIÓN", classes="info", id="estadoConexion")
+
         yield ScrollableContainer(
+            Container(
             Container(id="chat-container"),
-            id="MessagesContainer"
+            id="MessagesContainer")
         )
         yield Container(
             Input(id="msg-input",placeholder="Mensaje"),
@@ -157,6 +213,10 @@ class ChatApp(App):
         yield Footer()
         yield ScrollableContainer(InitialScreen(), id="initial-container")
 
+    def on_mount(self) -> None:
+        self.title = "Chat Application"
+        self.sub_title = "IP: " + urName + " " + "PUERTO: " + str(port)
+
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
 
@@ -167,5 +227,14 @@ class ChatApp(App):
         self.push_screen(ConnectScreen())
 
 if __name__ == "__main__":
+    entry = argparse.ArgumentParser("Server side of the crc app")
+    entry.add_argument("--port", "-p", type=int, default=1337, help="Change the port of the server. Default is 1337")
+
+    # Parse the arguments
+    args = entry.parse_args()
+
+    urName = getIpAddress()
+    port = args.port
+
     app = ChatApp()
     app.run()

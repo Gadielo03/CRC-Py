@@ -12,6 +12,33 @@ import asyncio
 
 
 """Functions for the classes"""
+def getWindowsIp() -> str:
+    """Gets the IP address of the host in Windows"""
+    ipv4_pattern = re.compile(r"IPv4.*: (\d+\.\d+\.\d+\.\d+)")
+    output = os.popen('ipconfig').read()
+    match = ipv4_pattern.search(output)
+    if match:
+        return match.group(1)
+    else:
+        return "127.0.0.1"
+
+
+def getIpAddress() -> str:
+    """Gets the IP address of the host"""
+    # Check what OS is Server running
+    whoAreWe = getOS()
+    ipv4 = ""
+    if whoAreWe == "Linux":
+        ipv4 = os.popen('ip addr').read().split("inet ")[2].split("/")[0]
+        pass
+    elif whoAreWe == "Windows":
+        ipv4 = getWindowsIp()
+        pass
+    elif whoAreWe == "Darwin":
+        ipv4 = os.popen('ifconfig | grep "inet "').read().split("inet ")[2].split(" ")[0]
+        pass
+
+    return ipv4
 
 
 def getOS() -> str:

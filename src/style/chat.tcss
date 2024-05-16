@@ -1,5 +1,8 @@
 #initial-container{
-    margin:3;
+    margin-left:3;
+    margin-right:3;
+    margin-top:1;
+    margin-bottom:1;
     align: center middle;
     border: heavy white;
     padding:1;
@@ -13,7 +16,7 @@
 }
 
 #connect-container{
-    margin:6;
+    margin:2;
     align: center middle;
     border: heavy white;
     padding:1;
@@ -32,8 +35,16 @@
 
 #msg-container{
     border: heavy white;
-    height: 70%;
-    align-vertical: top;
+
+
+}
+
+#info-container{
+    border: heavy white;
+    layout:horizontal;
+    height:5;
+    align-vertical:top;
+    align-horizontal:center;
 }
 
 #chat-container{
@@ -50,16 +61,27 @@ Label{
     margin:1
 }
 
-#input-puerto{
+#input-port{
     margin:1;
 }
 
 #close-btn{
     margin:1;
     margin-left:2;
+    background:red;
 }
 
 #connect-btn{
     margin:1;
     margin-left:2;
+    background:rgb(0,125,255);
+}
+
+#send-btn{
+    background:rgb(0,255,125);
+    color:white;
+}
+
+#connect-btns-container{
+    layout: horizontal;
 }
