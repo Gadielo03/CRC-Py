@@ -1,0 +1,65 @@
+#initial-container{
+    margin:3;
+    align: center middle;
+    border: heavy white;
+    padding:1;
+}
+
+#error-container{
+    margin:6;
+    align: center middle;
+    border: heavy red;
+    padding:1;
+}
+
+#connect-container{
+    margin:6;
+    align: center middle;
+    border: heavy white;
+    padding:1;
+}
+
+#input-container{
+    layout: horizontal;
+    align-vertical:bottom;
+    border: heavy white;
+    height: 5;
+}
+
+#msg-input{
+    width: 80%;
+}
+
+#msg-container{
+    border: heavy white;
+    height: 70%;
+    align-vertical: top;
+}
+
+#chat-container{
+    border: heavy white;
+    height: 100%;
+    align-vertical: top;
+}
+
+Label{
+    margin:2;
+}
+
+#input-ip{
+    margin:1
+}
+
+#input-puerto{
+    margin:1;
+}
+
+#close-btn{
+    margin:1;
+    margin-left:2;
+}
+
+#connect-btn{
+    margin:1;
+    margin-left:2;
+}

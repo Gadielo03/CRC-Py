@@ -77,57 +77,32 @@ def encodeData(data, key):
     codeword = data + remainder
     return codeword
 
-class MessagesScreen(ModalScreen):
-
-    BINDINGS = [("q", "quit", "Salir de la aplicación"), ("d", "toggle_dark", "Activar o desactivar el modo oscuro")]
-
+class ConnectScreen(ModalScreen):
     def compose(self) -> ComposeResult:
-        yield Header()
         yield ScrollableContainer(
-            Label("Mensajeria :)"),
-            Input(id="msg-input",placeholder="Mensaje"),
-            Container(
-            Button(id="snd-msg-btn",label="Enviar"),
-                    Label("  "),
-                    Button(id="ext-btn",label="Salir"),
-                    id="msg-btn-Container"),
-            id="msg-Container"
+            Label("Agregar Amigo :)"),
+            Input(placeholder="IP",id="input-ip"),
+            Input(placeholder="PUERTO",id="input-puerto"),
+            Button(id="connect-btn", label="Conectar"),
+            Button(id="close-btn", label="Cerrar"),
+            id="connect-container"
         )
-        yield Footer()
-
-    def action_toggle_dark(self) -> None:
-        self.app.dark = not self.app.dark
-
-    def action_quit(self) -> None:
-        quit()
 
     @on(Button.Pressed)
-    def SendMessage(self,event: Button.Pressed):
-        if event.button.id == "snd-msg-btn":
-            messageinput = self.query_one('#msg-input',Input)
-            message = messageinput.value
-            data = (''.join(format(ord(x), 'b') for x in message))
-            # print("Entered data in binary format :", data) todo
-            key = "1001"
-            ans = encodeData(data, key)
-            # print("Encoded data to be sent to server in binary format :", ans)
-            s.sendto(ans.encode(), (ip, port))
-            #self.mount(ans.encode())
-            #self.app.push_screen(ErrorScreen())
-        elif event.button.id == "ext-btn":
-            s.close()
+    def on_button_click(self, event: Button.Pressed):
+        if event.button.id == "close-btn":
             self.app.pop_screen()
 
 class ErrorScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         yield Container(
             Label("Error"),
-            Button(id="close-btn",label="Cerrar"),
+            Button(id="close-btn", label="Cerrar"),
             id="error-container"
         )
 
     @on(Button.Pressed)
-    def on_button_click(self,event: Button.Pressed):
+    def on_button_click(self, event: Button.Pressed):
         if event.button.id == "close-btn":
             self.app.pop_screen()
 
@@ -137,20 +112,21 @@ class InitialScreen(Static):
 
     def compose(self) -> ComposeResult:
         yield ScrollableContainer(
-            Label("INGRESE LOS DATOS :"),
-            Input(id="ip", placeholder="IP", type="text"),
-            Input(id="port", placeholder="PORT", type="number", max_length=5),
-            Button(id="send-btn", label="Conectar"),
-            Label(id="output"),
+            Container(id="chat-container"),
+            id="MessagesContainer"
+        )
+        yield Container(
+            Input(id="msg-input",placeholder="Mensaje"),
+            Button(id="send-btn",label="Enviar"),
+            id="input-container"
         )
 
-
     @on(Button.Pressed)
-    def on_button_Pressed(self, event: Button.Pressed):
+    def on_button_pressed(self, event: Button.Pressed):
         global s
         if event.button.id == "send-btn":
-            ipinput = self.query_one("#ip", Input)
-            portinput = self.query_one("#port", Input)
+            #ipinput = self.query_one("#ip", Input)
+            #portinput = self.query_one("#port", Input)
 
             try:
                 ip = str(ipinput.value)
@@ -160,7 +136,7 @@ class InitialScreen(Static):
                 s = socket.socket()
                 # connect to the server
                 s.connect((ip, port))
-                
+
 
 
             except:
@@ -171,10 +147,10 @@ class InitialScreen(Static):
                 self.app.push_screen(MessagesScreen())
 
 
-class ClientApp(App):
+class ChatApp(App):
     """Manejo de la aplicacion"""
-    CSS_PATH = "../style/client.tcss"
-    BINDINGS = [("q", "quit", "Salir de la aplicación"), ("d", "toggle_dark", "Activar o desactivar el modo oscuro")]
+    CSS_PATH = "../style/chat.tcss"
+    BINDINGS = [("q", "quit", "Salir de la aplicación"), ("d", "toggle_dark", "Activar o desactivar el modo oscuro"), ("a", "connect_screen", "Agregar amigos")]
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -187,9 +163,9 @@ class ClientApp(App):
     def action_quit(self) -> None:
         quit()
 
+    def action_connect_screen(self) -> None:
+        self.push_screen(ConnectScreen())
 
 if __name__ == "__main__":
-    ip = ""
-    port = 0000
-    app = ClientApp()
+    app = ChatApp()
     app.run()
