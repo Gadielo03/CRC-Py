@@ -1,6 +1,7 @@
 import argparse
+import asyncio
 
-from textual import on
+from textual import on, events
 from textual.app import App, ComposeResult
 from textual.containers import ScrollableContainer
 from textual.widgets import Header, Footer, Input, Button, Label, Static
@@ -118,7 +119,7 @@ class ConnectScreen(ModalScreen):
         yield ScrollableContainer(
             Label("Agregar Amigo :)"),
             Input(placeholder="IP",id="input-ip"),
-            Input(placeholder="PUERTO",id="input-port"),
+            Input(placeholder="PUERTO",id="input-port",type="number"),
             Container(
             Button(id="connect-btn", label="Conectar"),
             Button(id="close-btn", label="Cerrar"),id="connect-btns-container"),
@@ -133,11 +134,11 @@ class ConnectScreen(ModalScreen):
             ipinput = self.query_one('#input-ip')
             portinput = self.query_one('#input-port')
             try :
+                global ip
                 ip = str(ipinput.value)
                 port = int(portinput.value)
 
-                # Create a socket object
-                s = socket.socket()
+
                 # connect to the server
                 s.connect((ip, port))
             except:
@@ -179,29 +180,54 @@ class InitialScreen(Static):
 
     @on(Button.Pressed)
     def on_button_pressed(self, event: Button.Pressed):
-        global s
         if event.button.id == "send-btn":
-            #ipinput = self.query_one("#ip", Input)
-            #portinput = self.query_one("#port", Input)
+            inputMsg = self.query_one("#msg-input")
+            chatContainer = self.query_one('#chat-container')
 
             try:
-                ip = str(ipinput.value)
-                port = int(portinput.value)
+                msg = inputMsg.value
 
-                # Create a socket object
-                s = socket.socket()
-                # connect to the server
-                s.connect((ip, port))
+                data = (''.join(format(ord(x), 'b') for x in msg))
+                #print("Entered data in binary format :", data)
+                key = "1001"
 
+                ans = encodeData(data, key)
+                #print("Encoded data to be sent to server in binary format :", ans)
+                s.sendto(ans.encode(), (ip, port))
 
+                chatContainer.mount(Label(msg))
 
             except:
                 # close the connection
                 s.close()
                 self.app.push_screen(ErrorScreen())
-            else:
-                self.app.push_screen(MessagesScreen())
 
+    async def awaiting_connection(self):
+        """Asynchronously listens for incoming connections and updates the UI."""
+        s.listen(5)
+        chatContainer = self.query_one("#chat-container")
+
+        while True:  # Main loop
+            try:
+                client, addr = await asyncio.to_thread(s.accept)
+                await chatContainer.mount(Label(s.recv(1024).decode()))
+                #client.send("Connection established".encode())
+
+                # Handle connection in a separate coroutine
+                await asyncio.create_task(self.handle_connection(client))
+
+            except:
+                await self.app.push_screen(ErrorScreen())
+
+    async def handle_connection(self, client: socket.socket):
+        """Coroutine to manage individual connections."""
+        try:
+            pass
+        finally:
+            client.close()
+
+    def on_mount(self ) -> None:
+        self.chat_task = asyncio.create_task(self.awaiting_connection())
 
 class ChatApp(App):
     """Manejo de la aplicacion"""
@@ -216,6 +242,7 @@ class ChatApp(App):
     def on_mount(self) -> None:
         self.title = "Chat Application"
         self.sub_title = "IP: " + urName + " " + "PUERTO: " + str(port)
+
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
@@ -234,7 +261,12 @@ if __name__ == "__main__":
     args = entry.parse_args()
 
     urName = getIpAddress()
+
+    # Create a socket object
+    s = socket.socket()
+    # Socket setup
     port = args.port
+    s.bind((getIpAddress(), port))
 
     app = ChatApp()
     app.run()
