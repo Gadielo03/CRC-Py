@@ -12,6 +12,8 @@ import platform
 import re
 # Import socket module
 import socket
+
+
 def getWindowsIp() -> str:
     """Gets the IP address of the host in Windows"""
     ipv4_pattern = re.compile(r"IPv4.*: (\d+\.\d+\.\d+\.\d+)")
@@ -40,10 +42,12 @@ def getIpAddress() -> str:
 
     return ipv4
 
+
 def getOS() -> str:
     """Gets the OS of the host"""
     osName = platform.system()
     return osName
+
 
 def xor(a, b):
     # initialize result
@@ -114,15 +118,16 @@ def encodeData(data, key):
     codeword = data + remainder
     return codeword
 
+
 class ConnectScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         yield ScrollableContainer(
             Label("Agregar Amigo :)"),
-            Input(placeholder="IP",id="input-ip"),
-            Input(placeholder="PUERTO",id="input-port",type="number"),
+            Input(placeholder="IP", id="input-ip"),
+            Input(placeholder="PUERTO", id="input-port", type="number"),
             Container(
-            Button(id="connect-btn", label="Conectar"),
-            Button(id="close-btn", label="Cerrar"),id="connect-btns-container"),
+                Button(id="connect-btn", label="Conectar"),
+                Button(id="close-btn", label="Cerrar"), id="connect-btns-container"),
             id="connect-container"
         )
 
@@ -130,17 +135,17 @@ class ConnectScreen(ModalScreen):
     def on_button_click(self, event: Button.Pressed):
         if event.button.id == "close-btn":
             self.app.pop_screen()
-        elif( event.button.id == "connect-btn"):
+        elif event.button.id == "connect-btn":
             ipinput = self.query_one('#input-ip')
             portinput = self.query_one('#input-port')
-            try :
+            try:
                 global ip
                 ip = str(ipinput.value)
                 port = int(portinput.value)
 
-
                 # connect to the server
                 s.connect((ip, port))
+            #s.bind((getIpAddress(), port))
             except:
                 s.close()
                 self.app.push_screen(ErrorScreen())
@@ -165,16 +170,14 @@ class InitialScreen(Static):
 
     def compose(self) -> ComposeResult:
 
-        label = Label("ESPERANDO UNA CONEXIÓN", classes="info", id="estadoConexion")
-
         yield ScrollableContainer(
-            Container(
-            Container(id="chat-container"),
-            id="MessagesContainer")
+            ScrollableContainer(id="chat-container"),
+            id="MessagesContainer"
         )
+
         yield Container(
-            Input(id="msg-input",placeholder="Mensaje"),
-            Button(id="send-btn",label="Enviar"),
+            Input(id="msg-input", placeholder="Mensaje"),
+            Button(id="send-btn", label="Enviar"),
             id="input-container"
         )
 
@@ -188,14 +191,17 @@ class InitialScreen(Static):
                 msg = inputMsg.value
 
                 data = (''.join(format(ord(x), 'b') for x in msg))
-                #print("Entered data in binary format :", data)
+                print("Entered data in binary format :", data)
                 key = "1001"
 
                 ans = encodeData(data, key)
                 #print("Encoded data to be sent to server in binary format :", ans)
                 s.sendto(ans.encode(), (ip, port))
 
-                chatContainer.mount(Label(msg))
+                chatContainer.mount(
+                    Container(
+                        Label(msg, classes="my-msg"), classes="my-msg-cont")
+                )
 
             except:
                 # close the connection
@@ -210,7 +216,10 @@ class InitialScreen(Static):
         while True:  # Main loop
             try:
                 client, addr = await asyncio.to_thread(s.accept)
-                await chatContainer.mount(Label(s.recv(1024).decode()))
+                await chatContainer.mount(
+                    Container(
+                        Label(s.recv(1024).decode(), classes="rec-msg"), classes="rec-msg-cont")
+                )
                 #client.send("Connection established".encode())
 
                 # Handle connection in a separate coroutine
@@ -226,13 +235,15 @@ class InitialScreen(Static):
         finally:
             client.close()
 
-    def on_mount(self ) -> None:
+    def on_mount(self) -> None:
         self.chat_task = asyncio.create_task(self.awaiting_connection())
+
 
 class ChatApp(App):
     """Manejo de la aplicacion"""
     CSS_PATH = "../style/chat.tcss"
-    BINDINGS = [("q", "quit", "Salir de la aplicación"), ("d", "toggle_dark", "Activar o desactivar el modo oscuro"), ("a", "connect_screen", "Agregar amigos")]
+    BINDINGS = [("q", "quit", "Salir de la aplicación"), ("d", "toggle_dark", "Activar o desactivar el modo oscuro"),
+                ("a", "connect_screen", "Agregar amigos")]
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -243,7 +254,6 @@ class ChatApp(App):
         self.title = "Chat Application"
         self.sub_title = "IP: " + urName + " " + "PUERTO: " + str(port)
 
-
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
 
@@ -252,6 +262,7 @@ class ChatApp(App):
 
     def action_connect_screen(self) -> None:
         self.push_screen(ConnectScreen())
+
 
 if __name__ == "__main__":
     entry = argparse.ArgumentParser("Server side of the crc app")
