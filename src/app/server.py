@@ -189,7 +189,7 @@ if __name__ == "__main__":
 
     #Socket setup
     s = socket.socket()
-    port = args.port
+
     s.bind((getIpAddress(), port))
     #ServerApp Init
     app = ServerApp()

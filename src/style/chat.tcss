@@ -35,8 +35,6 @@
 
 #msg-container{
     border: heavy white;
-
-
 }
 
 #info-container{
@@ -50,7 +48,31 @@
 #chat-container{
     border: heavy white;
     height: 100%;
-    align-vertical: top;
+    width: 100%;
+}
+
+.my-msg-cont{
+    height:auto;
+    align-horizontal: right;
+}
+
+.my-msg{
+    text-align:right;
+    border: rgb(0,255,125);
+    padding:1;
+    margin:0;
+}
+
+.rec-msg-cont{
+    height:auto;
+    align-horizontal: left;
+}
+
+.rec-msg{
+    text-align:left;
+    border: rgb(0,125,255);
+    padding:1;
+    margin:0;
 }
 
 Label{
