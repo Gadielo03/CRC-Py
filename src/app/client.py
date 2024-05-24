@@ -7,7 +7,6 @@ from textual.containers import Container
 # Import socket module
 import socket
 
-
 def xor(a, b):
     # initialize result
     result = []
@@ -111,7 +110,8 @@ class MessagesScreen(ModalScreen):
             key = "1001"
             ans = encodeData(data, key)
             # print("Encoded data to be sent to server in binary format :", ans)
-            s.sendto(ans.encode(), (ip, port))
+            # s.sendto(ans.encode(), (ip, port))
+            s.send(ans.encode('utf-8'))
             #self.mount(ans.encode())
             #self.app.push_screen(ErrorScreen())
         elif event.button.id == "ext-btn":
@@ -157,7 +157,7 @@ class InitialScreen(Static):
                 port = int(portinput.value)
 
                 # Create a socket object
-                s = socket.socket()
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 # connect to the server
                 s.connect((ip, port))
                 
@@ -191,5 +191,6 @@ class ClientApp(App):
 if __name__ == "__main__":
     ip = ""
     port = 0000
+    s = ''
     app = ClientApp()
     app.run()
