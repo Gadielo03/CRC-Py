@@ -14,36 +14,6 @@ from textual.widgets import Button, Footer, Header, Input, Label, Static
 
 """Functions for the classes"""
 
-
-def getWindowsIp() -> str:
-    """Gets the IP address of the host in Windows"""
-    ipv4_pattern = re.compile(r"IPv4.*: (\d+\.\d+\.\d+\.\d+)")
-    output = os.popen('ipconfig').read()
-    match = ipv4_pattern.search(output)
-    if match:
-        return match.group(1)
-    else:
-        return "127.0.0.1"
-
-
-def getIpAddress() -> str:
-    """Gets the IP address of the host"""
-    # Check what OS is Server running
-    whoAreWe = getOS()
-    ipv4 = ""
-    if whoAreWe == "Linux":
-        ipv4 = os.popen('ip addr').read().split("inet ")[2].split("/")[0]
-        pass
-    elif whoAreWe == "Windows":
-        ipv4 = getWindowsIp()
-        pass
-    elif whoAreWe == "Darwin":
-        ipv4 = os.popen('ifconfig | grep "inet "').read().split("inet ")[2].split(" ")[0]
-        pass
-
-    return ipv4
-
-
 def getOS() -> str:
     """Gets the OS of the host"""
     osName = platform.system()
@@ -168,6 +138,10 @@ class InitialScreen(Static):
     """Widget de espera de Conexion"""
     def __init__(self):
         super().__init__()
+        self.client = None #Se declara un cliente al momento de iniciliazar InitialScreen
+        #Despues se copia el client generado por la conexion
+        #Y esta copia del client se puede utilizar en todos los metodos de InitialScreen
+        #Usando self.client :3
 
     def compose(self) -> ComposeResult:
 
@@ -192,12 +166,21 @@ class InitialScreen(Static):
                 msg = inputMsg.value
 
                 data = (''.join(format(ord(x), 'b') for x in msg))
-                print("Entered data in binary format :", data)
+                # print("Entered data in binary format :", data)
                 key = "1001"
 
-                #ans = encodeData(data, key)
+                ans = encodeData(data, key)
+                st = ans.encode('utf-8')
                 #print("Encoded data to be sent to server in binary format :", ans)
                 #s.sendto(ans.encode(), (ip, port))
+                if self.client:
+                    # self.client.sendto(st, (urName, port))
+                    self.client.send(st)
+                    self.app.call_later(self.update_chat, f"Message sent!")
+                else:
+                    self.app.call_later(self.update_chat, f"Message not send")
+
+
 
                 chatContainer.mount(
                     Container(
@@ -206,11 +189,13 @@ class InitialScreen(Static):
                     )
                 )
 
-            except:
+            except Exception as e:
                 # close the connection
-                s.close()
+                if self.client:
+                    self.client.close()
                 # self.app.push_screen(ErrorScreen())
-                self.app.push_screen(DebugScreen("Error al enviar el mensaje"))
+                # self.app.push_screen(DebugScreen(f"Error al enviar el mensaje\n{e}"))
+                self.app.call_later(self.update_chat,f"Error al recibir el mensaje\n{e}")
 
     async def awaiting_connection(self):
         """Asynchronously listens for incoming connections and updates the UI."""
@@ -225,10 +210,12 @@ class InitialScreen(Static):
         while True:  # Main loop
             try:
                 client, addr = await asyncio.to_thread(s.accept)
+                self.client = client
                 self.app.call_later(self.update_chat, f"connection from {addr}")
                 asyncio.create_task(self.handle_client(client))
             except Exception as e:
-                self.app.push_screen(DebugScreen("Error al recibir el mensaje", str(e)))
+                self.app.call_later(self.update_chat,f"Error al recibir el mensaje\n{e}")
+                # self.app.push_screen(DebugScreen(f"Error al recibir el mensaje\n{e}"))
 
     async def handle_client(self, client):
         """Handle communication with a connected client."""

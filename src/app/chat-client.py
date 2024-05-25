@@ -205,7 +205,7 @@ class InitialScreen(Static):
                 ans = encodeData(data, key)
                 # print("Encoded data to be sent to server in binary format :", ans)
                 # s.sendto(ans.encode(), (ip, port))
-                s.send(ans.encode('UTF-8'))
+                s.send(ans.encode('utf-8'))
                 # self.mount(ans.encode())
 
                 chatContainer.mount(
@@ -244,8 +244,17 @@ class ChatApp(App):
 
 
 if __name__ == "__main__":
-    ip = ""
-    port = 0000
+#Argument parsing
+    entry = argparse.ArgumentParser("Client side of the crc app")
+    entry.add_argument("--port", "-p", type=int, default=0000, help="Change the port of the client. Default is 1111")
+
+    #Parse the arguments
+    args = entry.parse_args()
+
+    #Socket setup
+    ip = getIpAddress()
+    port = args.port
+
     # Create a socket object
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
