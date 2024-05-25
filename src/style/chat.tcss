@@ -54,25 +54,27 @@
 .my-msg-cont{
     height:auto;
     align-horizontal: right;
+    overflow-x:scroll;
 }
 
 .my-msg{
     text-align:right;
     border: rgb(0,255,125);
     padding:1;
-    margin:0;
+    margin:1;
 }
 
 .rec-msg-cont{
     height:auto;
     align-horizontal: left;
+    overflow-x:scroll;
 }
 
 .rec-msg{
     text-align:left;
     border: rgb(0,125,255);
     padding:1;
-    margin:0;
+    margin:1;
 }
 
 Label{

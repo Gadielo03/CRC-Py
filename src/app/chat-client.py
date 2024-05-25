@@ -136,25 +136,29 @@ class ConnectScreen(ModalScreen):
         if event.button.id == "close-btn":
             self.app.pop_screen()
         elif event.button.id == "connect-btn":
-            ipinput = self.query_one('#input-ip')
-            portinput = self.query_one('#input-port')
+            ipinput = self.query_one("#input-ip", Input)
+            portinput = self.query_one("#input-port", Input)
+
             try:
-                global ip
                 ip = str(ipinput.value)
                 port = int(portinput.value)
 
                 # connect to the server
                 s.connect((ip, port))
             #s.bind((getIpAddress(), port))
-            except:
+            except Exception as e:
                 s.close()
-                self.app.push_screen(ErrorScreen())
+                self.app.push_screen(DebugScreen("Error al enviar el mensaje, Error: " + str(e)))
 
 
-class ErrorScreen(ModalScreen):
+class DebugScreen(ModalScreen):
+    def __init__(self, status: str):
+        self.status = status
+        super().__init__()
+
     def compose(self) -> ComposeResult:
         yield Container(
-            Label("Error"),
+            Label(self.status),
             Button(id="close-btn", label="Cerrar"),
             id="error-container"
         )
@@ -188,15 +192,21 @@ class InitialScreen(Static):
             chatContainer = self.query_one('#chat-container')
 
             try:
+
                 msg = inputMsg.value
 
                 data = (''.join(format(ord(x), 'b') for x in msg))
-                print("Entered data in binary format :", data)
+                #print("Entered data in binary format :", data)
                 key = "1001"
 
-                ans = encodeData(data, key)
+                #ans = encodeData(data, key)
                 #print("Encoded data to be sent to server in binary format :", ans)
-                s.sendto(ans.encode(), (ip, port))
+                #s.sendto(ans.encode(), (ip, port))
+                ans = encodeData(data, key)
+                # print("Encoded data to be sent to server in binary format :", ans)
+                # s.sendto(ans.encode(), (ip, port))
+                s.send(ans.encode('UTF-8'))
+                # self.mount(ans.encode())
 
                 chatContainer.mount(
                     Container(
@@ -206,37 +216,7 @@ class InitialScreen(Static):
             except:
                 # close the connection
                 s.close()
-                self.app.push_screen(ErrorScreen())
-
-    async def awaiting_connection(self):
-        """Asynchronously listens for incoming connections and updates the UI."""
-        s.listen(5)
-        chatContainer = self.query_one("#chat-container")
-
-        while True:  # Main loop
-            try:
-                client, addr = await asyncio.to_thread(s.accept)
-                await chatContainer.mount(
-                    Container(
-                        Label(s.recv(1024).decode(), classes="rec-msg"), classes="rec-msg-cont")
-                )
-                #client.send("Connection established".encode())
-
-                # Handle connection in a separate coroutine
-                await asyncio.create_task(self.handle_connection(client))
-
-            except:
-                await self.app.push_screen(ErrorScreen())
-
-    async def handle_connection(self, client: socket.socket):
-        """Coroutine to manage individual connections."""
-        try:
-            pass
-        finally:
-            client.close()
-
-    def on_mount(self) -> None:
-        self.chat_task = asyncio.create_task(self.awaiting_connection())
+                self.app.push_screen(DebugScreen("Error al enviar el mensaje"))
 
 
 class ChatApp(App):
@@ -251,8 +231,7 @@ class ChatApp(App):
         yield ScrollableContainer(InitialScreen(), id="initial-container")
 
     def on_mount(self) -> None:
-        self.title = "Chat Application"
-        self.sub_title = "IP: " + urName + " " + "PUERTO: " + str(port)
+        self.title = "Chat Client Application"
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
@@ -265,19 +244,10 @@ class ChatApp(App):
 
 
 if __name__ == "__main__":
-    entry = argparse.ArgumentParser("Server side of the crc app")
-    entry.add_argument("--port", "-p", type=int, default=1337, help="Change the port of the server. Default is 1337")
-
-    # Parse the arguments
-    args = entry.parse_args()
-
-    urName = getIpAddress()
-
+    ip = ""
+    port = 0000
     # Create a socket object
-    s = socket.socket()
-    # Socket setup
-    port = args.port
-    s.bind((getIpAddress(), port))
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     app = ChatApp()
     app.run()
