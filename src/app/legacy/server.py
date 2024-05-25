@@ -164,7 +164,7 @@ class InitialScreen(Static):
 
 class ServerApp(App):
     """Manejo de la aplicacion"""
-    CSS_PATH = "../style/server.tcss"
+    CSS_PATH = "../../style/server.tcss"
     BINDINGS = [("q", "quit", "Salir de la aplicación"), ("d", "toggle_dark", "Activar o desactivar el modo oscuro")]
 
     def compose(self) -> ComposeResult:
