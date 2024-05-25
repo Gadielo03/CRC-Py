@@ -8,12 +8,12 @@
 ### Install Python 3.12
 #### Debian / Ubuntu 
 ```bash
-$ sudo apt install python3.12
+$ sudo apt install python3.12 python3-pip
 ```
 
 #### Red Hat Linux / Fedora
 ```bash
-$ sudo dnf install python3.12
+$ sudo dnf install python3.12 python3-pip
 ```
 
 #### MacOs
