@@ -176,7 +176,7 @@ class InitialScreen(Static):
                 if self.client:
                     # self.client.sendto(st, (urName, port))
                     self.client.send(st)
-                    self.app.call_later(self.update_chat, f"Message sent!")
+                    #self.app.call_later(self.update_chat, f"Message sent!")
                 else:
                     self.app.call_later(self.update_chat, f"Message not send")
 

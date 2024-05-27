@@ -218,6 +218,34 @@ class InitialScreen(Static):
                 s.close()
                 self.app.push_screen(DebugScreen("Error al enviar el mensaje"))
 
+    async def awaiting_messages(self):
+        """Asynchronously listens for incoming Server Messages"""
+        while True:  # Main loop
+            try:
+                    msg = await asyncio.to_thread(s.recv, 2048)
+                    if msg:
+                        decoded_msg = msg.decode('utf-8')
+                        self.app.call_later(self.update_chat, decoded_msg)
+                    else:
+                        break
+
+            except Exception as e:
+                self.app.call_later(self.update_chat, f"Error al recibir el mensaje\n{e}")
+                await asyncio.sleep(5)
+                # self.app.push_screen(DebugScreen(f"Error al recibir el mensaje\n{e}"))
+
+    async def update_chat(self, msg):
+        chatContainer = self.query_one("#chat-container")
+        chatContainer.mount(
+            Container(
+                Label(msg, classes="rec-msg"),
+                classes="rec-msg-cont"
+            )
+        )
+
+    def on_mount(self) -> None:
+        self.chat_task = asyncio.create_task(self.awaiting_messages())
+
 
 class ChatApp(App):
     """Manejo de la aplicacion"""
