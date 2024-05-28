@@ -224,7 +224,10 @@ class InitialScreen(Static):
                 msg = await asyncio.to_thread(client.recv, 2048)
                 if msg:
                     decoded_msg = msg.decode('utf-8')
-                    self.app.call_later(self.update_chat, decoded_msg)
+                    binc = [decoded_msg[i:i + 7] for i in range(0, len(decoded_msg), 7)]
+                    nums = [int(chunk, 2) for chunk in binc]
+                    str1 = ''.join(chr(num) for num in nums)
+                    self.app.call_later(self.update_chat, str1 + "\n" +decoded_msg)
                 else:
                     break
         except Exception as e:
