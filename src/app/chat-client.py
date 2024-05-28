@@ -13,7 +13,6 @@ import re
 # Import socket module
 import socket
 
-
 def getWindowsIp() -> str:
     """Gets the IP address of the host in Windows"""
     ipv4_pattern = re.compile(r"IPv4.*: (\d+\.\d+\.\d+\.\d+)")
@@ -145,6 +144,7 @@ class ConnectScreen(ModalScreen):
 
                 # connect to the server
                 s.connect((ip, port))
+                self.app.pop_screen()
             #s.bind((getIpAddress(), port))
             except Exception as e:
                 s.close()
@@ -225,7 +225,17 @@ class InitialScreen(Static):
                     msg = await asyncio.to_thread(s.recv, 2048)
                     if msg:
                         decoded_msg = msg.decode('utf-8')
-                        self.app.call_later(self.update_chat, decoded_msg)
+                        #str_data = ""
+                        #for i in range(0, len(decoded_msg), 7):
+                        #    temp_data = int(decoded_msg[i:i + 7])
+                        #    decimal_data = BinaryToDecimal(temp_data)
+                        #    str_data = str_data + chr(decimal_data)
+                        binc = [decoded_msg[i:i + 7] for i in range(0, len(decoded_msg), 7)]
+                        nums = [int(chunk, 2) for chunk in binc]
+                        str1 = ''.join(chr(num) for num in nums)
+                        #bstr = ' '.join(format(ord(c), '08b') for c in decoded_msg)
+
+                        self.app.call_later(self.update_chat, str1 + "\n" + decoded_msg)
                     else:
                         break
 
