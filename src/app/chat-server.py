@@ -48,74 +48,86 @@ def getIpAddress() -> str:
 
     return ipv4
 
-def xor(a, b):
-    # initialize result
-    result = []
+def calculate_parity_bits(data):
+    data = [int(bit) for bit in data]
+    n = len(data)
+    r = 0
+    while (2**r < n + r + 1):
+        r += 1
+    
+    hamming_code = list(data)
+    
+    # Initialize parity bits to 0
+    for i in range(r):
+        hamming_code.insert((2**i) - 1, 0)
+    
+    # Calculate parity bits
+    for i in range(r):
+        parity_index = (2**i) - 1
+        parity_sum = 0
+        for j in range(parity_index, len(hamming_code), (2 * (parity_index + 1))):
+            parity_sum += sum(hamming_code[j:j + parity_index + 1])
+        hamming_code[parity_index] = parity_sum % 2
+    
+    return ''.join(map(str, hamming_code))
 
-    # Traverse all bits, if bits are
-    # same, then XOR is 0, else 1
+def detect_and_correct(hamming_code):
+    hamming_code = [int(bit) for bit in hamming_code]
+    r = 0
+    while (2**r < len(hamming_code)):
+        r += 1
+    
+    error_pos = 0
+    for i in range(r):
+        parity_index = (2**i) - 1
+        parity_sum = 0
+        for j in range(parity_index, len(hamming_code), (2 * (parity_index + 1))):
+            parity_sum += sum(hamming_code[j:j + parity_index + 1])
+        if parity_sum % 2 != 0:
+            error_pos += 2**i
+    
+    if error_pos != 0:
+        hamming_code[error_pos - 1] ^= 1  # Correct the error
+    
+    return ''.join(map(str, hamming_code))
+
+def xor(a, b):
+    result = []
     for i in range(1, len(b)):
         if a[i] == b[i]:
             result.append('0')
         else:
             result.append('1')
-
     return ''.join(result)
 
-
-# Performs Modulo-2 division
 def mod2div(dividend, divisor):
-    # Number of bits to be XORed at a time.
     pick = len(divisor)
-
-    # Slicing the dividend to appropriate
-    # length for particular step
     tmp = dividend[0: pick]
-
     while pick < len(dividend):
-
         if tmp[0] == '1':
-
-            # replace the dividend by the result
-            # of XOR and pull 1 bit down
             tmp = xor(divisor, tmp) + dividend[pick]
-
-        else:  # If leftmost bit is '0'
-
-            # If the leftmost bit of the dividend (or the
-            # part used in each step) is 0, the step cannot
-            # use the regular divisor; we need to use an
-            # all-0s divisor.
+        else:
             tmp = xor('0' * pick, tmp) + dividend[pick]
-
-        # increment pick to move further
         pick += 1
-
-    # For the last n bits, we have to carry it out
-    # normally as increased value of pick will cause
-    # Index Out of Bounds.
     if tmp[0] == '1':
         tmp = xor(divisor, tmp)
     else:
         tmp = xor('0' * pick, tmp)
-
     checkword = tmp
     return checkword
 
-
-# Function used at the sender side to encode
-# data by appending remainder of modular division
-# at the end of data.
 def encodeData(data, key):
     l_key = len(key)
-
-    # Appends n-1 zeroes at end of data
     appended_data = data + '0' * (l_key - 1)
     remainder = mod2div(appended_data, key)
-
-    # Append remainder in the original data
     codeword = data + remainder
     return codeword
+
+def crc_check(input_bits, key):
+    l_key = len(key)
+    appended_data = input_bits + '0' * (l_key - 1)
+    remainder = mod2div(appended_data, key)
+    return '1' not in remainder
 
 class DebugScreen(ModalScreen):
     def __init__(self, status: str):
@@ -138,7 +150,8 @@ class InitialScreen(Static):
     """Widget de espera de Conexion"""
     def __init__(self):
         super().__init__()
-        self.client = None #Se declara un cliente al momento de iniciliazar InitialScreen
+        self.client = None 
+        #Se declara un cliente al momento de iniciliazar InitialScreen
         #Despues se copia el client generado por la conexion
         #Y esta copia del client se puede utilizar en todos los metodos de InitialScreen
         #Usando self.client :3
@@ -166,19 +179,14 @@ class InitialScreen(Static):
                 msg = inputMsg.value
 
                 data = (''.join(format(ord(x), 'b') for x in msg))
-                # print("Entered data in binary format :", data)
                 key = "1001"
 
                 ans = encodeData(data, key)
                 st = ans.encode('utf-8')
-                #print("Encoded data to be sent to server in binary format :", ans)
-                #s.sendto(ans.encode(), (ip, port))
                 if self.client:
-                    # self.client.sendto(st, (urName, port))
                     self.client.send(st)
-                    #self.app.call_later(self.update_chat, f"Message sent!")
                 else:
-                    self.app.call_later(self.update_chat, f"Message not send")
+                    self.app.push_screen(DebugScreen(f"Error al enviar el mensaje\n{e}"))
 
 
 
@@ -193,29 +201,25 @@ class InitialScreen(Static):
                 # close the connection
                 if self.client:
                     self.client.close()
-                # self.app.push_screen(ErrorScreen())
-                # self.app.push_screen(DebugScreen(f"Error al enviar el mensaje\n{e}"))
-                self.app.call_later(self.update_chat,f"Error al recibir el mensaje\n{e}")
+                self.app.push_screen(DebugScreen(f"Error al enviar el mensaje\n{e}"))
 
     async def awaiting_connection(self):
         """Asynchronously listens for incoming connections and updates the UI."""
         try:
             s.bind((urName, port))
             s.listen()
-            self.app.call_later(self.update_chat, "Bind correcto!")
         except Exception as e:
-            self.app.call_later(self.update_chat, f"Error al escuchar conexiones: {e}")
+            self.app.push_screen(DebugScreen(f"Error al crear conexion\n{e}"))
             return
 
         while True:  # Main loop
             try:
                 client, addr = await asyncio.to_thread(s.accept)
                 self.client = client
-                self.app.call_later(self.update_chat, f"connection from {addr}")
+                self.app.push_screen(DebugScreen(f"Conexion establecida con\n{addr}"))
                 asyncio.create_task(self.handle_client(client))
             except Exception as e:
-                self.app.call_later(self.update_chat,f"Error al recibir el mensaje\n{e}")
-                # self.app.push_screen(DebugScreen(f"Error al recibir el mensaje\n{e}"))
+                self.app.push_screen(DebugScreen(f"Error al enviar el mensaje\n{e}"))
 
     async def handle_client(self, client):
         """Handle communication with a connected client."""
@@ -231,10 +235,7 @@ class InitialScreen(Static):
                 else:
                     break
         except Exception as e:
-            self.app.call_later(self.update_chat, f"Receive error: {e}")
-        #finally:
-            #client.close()
-            #self.app.call_later(self.update_chat, "Client disconnected")
+            self.app.push_screen(DebugScreen(f"Error al recibir el mensaje\n{e}"))
 
 
     async def update_chat(self, msg):
