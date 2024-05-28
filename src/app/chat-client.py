@@ -48,47 +48,62 @@ def getOS() -> str:
     return osName
 
 
+def binToStr(decoded_msg) -> str:
+    """Converts binary to string, considering remaining bits and spaces."""
+    # Remove the last 3 CRC bits
+    # decoded_msg = decoded_msg[:-3]
+    #
+    # # Ensure the length is a multiple of 7
+    # while len(decoded_msg) % 7 != 0:
+    #     decoded_msg = '0' + decoded_msg
+
+    binc = [decoded_msg[i:i + 7] for i in range(0, len(decoded_msg), 7)]
+    nums = [int(chunk, 2) for chunk in binc]
+    return ''.join(chr(num) for num in nums)
+
+
 def calculate_parity_bits(data):
     data = [int(bit) for bit in data]
     n = len(data)
     r = 0
-    while (2**r < n + r + 1):
+    while (2 ** r < n + r + 1):
         r += 1
-    
+
     hamming_code = list(data)
-    
+
     # Initialize parity bits to 0
     for i in range(r):
-        hamming_code.insert((2**i) - 1, 0)
-    
+        hamming_code.insert((2 ** i) - 1, 0)
+
     # Calculate parity bits
     for i in range(r):
-        parity_index = (2**i) - 1
+        parity_index = (2 ** i) - 1
         parity_sum = 0
         for j in range(parity_index, len(hamming_code), (2 * (parity_index + 1))):
             parity_sum += sum(hamming_code[j:j + parity_index + 1])
         hamming_code[parity_index] = parity_sum % 2
-    
+
     return ''.join(map(str, hamming_code))
+
 
 def detect_and_correct(hamming_code):
     hamming_code = [int(bit) for bit in hamming_code]
     r = 0
-    while (2**r < len(hamming_code)):
+    while (2 ** r < len(hamming_code)):
         r += 1
-    
+
     error_pos = 0
     for i in range(r):
-        parity_index = (2**i) - 1
+        parity_index = (2 ** i) - 1
         parity_sum = 0
         for j in range(parity_index, len(hamming_code), (2 * (parity_index + 1))):
             parity_sum += sum(hamming_code[j:j + parity_index + 1])
         if parity_sum % 2 != 0:
-            error_pos += 2**i
-    
+            error_pos += 2 ** i
+
     if error_pos != 0:
         hamming_code[error_pos - 1] ^= 1  # Correct the error
-    
+
     return ''.join(map(str, hamming_code))
 
 def xor(a, b):
@@ -205,6 +220,7 @@ class InitialScreen(Static):
             try:
 
                 msg = inputMsg.value
+                msg = msg.replace(' ', '`')
 
                 data = (''.join(format(ord(x), 'b') for x in msg))
                 #print("Entered data in binary format :", data)
@@ -219,6 +235,7 @@ class InitialScreen(Static):
                 s.send(ans.encode('utf-8'))
                 # self.mount(ans.encode())
 
+                msg = msg.replace('`', ' ')
                 chatContainer.mount(
                     Container(
                         Label(msg, classes="my-msg"), classes="my-msg-cont")
@@ -236,16 +253,8 @@ class InitialScreen(Static):
                     msg = await asyncio.to_thread(s.recv, 2048)
                     if msg:
                         decoded_msg = msg.decode('utf-8')
-                        #str_data = ""
-                        #for i in range(0, len(decoded_msg), 7):
-                        #    temp_data = int(decoded_msg[i:i + 7])
-                        #    decimal_data = BinaryToDecimal(temp_data)
-                        #    str_data = str_data + chr(decimal_data)
-                        binc = [decoded_msg[i:i + 7] for i in range(0, len(decoded_msg), 7)]
-                        nums = [int(chunk, 2) for chunk in binc]
-                        str1 = ''.join(chr(num) for num in nums)
-                        #bstr = ' '.join(format(ord(c), '08b') for c in decoded_msg)
-
+                        str1 = binToStr(decoded_msg)
+                        str1 = str1.replace('`', ' ')
                         self.app.call_later(self.update_chat, str1 + "\n" + decoded_msg)
                     else:
                         break
