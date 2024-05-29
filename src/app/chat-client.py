@@ -276,6 +276,10 @@ class InitialScreen(Static):
                         )
                     else:
                         s.send(hamming_encoded.encode('utf-8'))
+                        chatContainer.mount(
+                            Container(
+                                Label(msg, classes="my-msg"), classes="my-msg-cont")
+                        )
                 else:
                     s.send(hamming_encoded.encode('utf-8'))
                     chatContainer.mount(
