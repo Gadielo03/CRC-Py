@@ -103,51 +103,6 @@ def crc_check(input_bits, key):
     remainder = mod2div(appended_data, key)
     return '1' not in remainder
 
-
-def calculate_parity_bits(data):
-    data = [int(bit) for bit in data]
-    n = len(data)
-    r = 0
-    while (2 ** r < n + r + 1):
-        r += 1
-
-    hamming_code = list(data)
-
-    # Initialize parity bits to 0
-    for i in range(r):
-        hamming_code.insert((2 ** i) - 1, 0)
-
-    # Calculate parity bits
-    for i in range(r):
-        parity_index = (2 ** i) - 1
-        parity_sum = 0
-        for j in range(parity_index, len(hamming_code), (2 * (parity_index + 1))):
-            parity_sum += sum(hamming_code[j:j + parity_index + 1])
-        hamming_code[parity_index] = parity_sum % 2
-
-    return ''.join(map(str, hamming_code))
-
-
-def detect_and_correct(hamming_code):
-    hamming_code = [int(bit) for bit in hamming_code]
-    r = 0
-    while (2 ** r < len(hamming_code)):
-        r += 1
-
-    error_pos = 0
-    for i in range(r):
-        parity_index = (2 ** i) - 1
-        parity_sum = 0
-        for j in range(parity_index, len(hamming_code), (2 * (parity_index + 1))):
-            parity_sum += sum(hamming_code[j:j + parity_index + 1])
-        if parity_sum % 2 != 0:
-            error_pos += 2 ** i
-
-    if error_pos != 0:
-        hamming_code[error_pos - 1] ^= 1  # Correct the error
-
-    return ''.join(map(str, hamming_code))
-
 def ErrorData(data):
     data_list = list(data)
     number = random.randint(0, len(data_list) - 1)
@@ -156,6 +111,78 @@ def ErrorData(data):
     elif data_list[number] == '1':
         data_list[number] = '0'
     return ''.join(data_list)
+
+def calculate_parity_bits(data):
+    """Calculate parity bits for Hamming code."""
+    n = len(data)
+    r = 1
+    while (2**r) < (n + r + 1):
+        r += 1
+    return r
+
+def hamming_code(data):
+    """Generate Hamming code with parity bits."""
+    n = len(data)
+    r = calculate_parity_bits(data)
+    data = list(data)
+    j = 0
+    k = 1
+    m = len(data)
+
+    # Insert parity bits into their positions
+    while k <= m + r:
+        if k == 2**j:
+            data.insert(k-1, '0')
+            j += 1
+        k += 1
+
+    # Calculate parity bits
+    for i in range(r):
+        val = 0
+        for j in range(1, len(data) + 1):
+            if j & (2**i) == (2**i):
+                val = val ^ int(data[j-1])
+        data[2**i - 1] = str(val)
+
+    return ''.join(data)
+
+def check_hamming_code(data):
+    """Check and correct Hamming code errors."""
+    n = len(data)
+    r = calculate_parity_bits(data)
+    data = list(data)
+    error_pos = 0
+
+    # Calculate parity bits and identify error position
+    for i in range(r):
+        val = 0
+        for j in range(1, n + 1):
+            if j & (2**i) == (2**i):
+                val = val ^ int(data[j-1])
+        error_pos += val * (2**i)
+
+    if error_pos:
+        data[error_pos-1] = '1' if data[error_pos-1] == '0' else '0'
+
+    return ''.join(data), error_pos
+
+
+def decode_hamming_code(data):
+    """Decode Hamming code by removing parity bits."""
+    n = len(data)
+    r = calculate_parity_bits(data)
+    corrected_data = list(data)
+    j = 0
+    decoded_data = []
+
+    for i in range(1, n + 1):
+        if i != 2 ** j:
+            decoded_data.append(corrected_data[i - 1])
+        else:
+            j += 1
+
+    return ''.join(decoded_data)
+
 
 class DebugScreen(ModalScreen):
     def __init__(self, status: str):
@@ -205,40 +232,42 @@ class InitialScreen(Static):
 
             try:
                 msg = inputMsg.value
-
+                msg = msg.replace(' ', '`')
                 data = (''.join(format(ord(x), 'b') for x in msg))
                 key = "1001"
 
                 ans = encodeData(data, key)
+                hamming_encoded = hamming_code(ans)
 
-                #st = ans.encode('utf-8')
+                msg = msg.replace('`', ' ')
                 if self.client:
                     if noise > 0:
                         number = random.randint(1, 5)
                         if number <= noise:
-                            errorAns = ErrorData(ans)
+                            errorAns = ErrorData(hamming_encoded)
                             self.client.send(errorAns.encode('utf-8'))
                             chatContainer.mount(
                                 Container(
-                                    Label(str(ans) + '\n' + " w/Error: " + str(errorAns), classes="my-msg"),
-                                    classes="my-msg-cont")
+                                    Label(f"{msg}\n{ans}\nw/Error: {errorAns}", classes="my-msg"),
+                                    classes="my-msg-cont"
+                                )
                             )
                         else:
-                            self.client.send(ans.encode('utf-8'))
+                            self.client.send(hamming_encoded.encode('utf-8'))
                     else:
-                        self.client.send(ans.encode('utf-8'))
-                    #self.client.send(st)
+                        self.client.send(hamming_encoded.encode('utf-8'))
+                        chatContainer.mount(
+                            Container(
+                                Label(msg, classes="my-msg"),
+                                classes="my-msg-cont"
+                            )
+                        )
                 else:
                     self.app.push_screen(DebugScreen(f"Error al enviar el mensaje"))
 
 
 
-                chatContainer.mount(
-                    Container(
-                        Label(msg, classes="my-msg"),
-                        classes="my-msg-cont"
-                    )
-                )
+
 
             except Exception as e:
                 # close the connection
@@ -259,7 +288,7 @@ class InitialScreen(Static):
             try:
                 client, addr = await asyncio.to_thread(s.accept)
                 self.client = client
-                self.app.push_screen(DebugScreen(f"Conexion establecida con\n{addr}"))
+                self.app.push_screen(DebugScreen(f"Established connection with:\n{addr}"))
                 asyncio.create_task(self.handle_client(client))
             except Exception as e:
                 self.app.push_screen(DebugScreen(f"Error al enviar el mensaje\n{e}"))
@@ -271,9 +300,23 @@ class InitialScreen(Static):
                 msg = await asyncio.to_thread(client.recv, 2048)
                 if msg:
                     decoded_msg = msg.decode('utf-8')
-                    str1 = binToStr(decoded_msg)
-                    str1 = str1.replace('`', ' ')
-                    self.app.call_later(self.update_chat, str1 + "\n" + decoded_msg)
+                    cipher = decode_hamming_code(decoded_msg)
+                    crc_valid = crc_check(cipher, '1001')
+                    if not crc_valid:
+                        corrected_msg, error_pos = check_hamming_code(decoded_msg)
+                        data_part = corrected_msg[:-3]
+                        ans = decode_hamming_code(data_part)
+                        bad_str = binToStr(decoded_msg)
+                        str1 = binToStr(ans)
+                        str1 = str1.replace('`', ' ')
+                        self.app.call_later(self.update_chat, f"Message w/Error: {bad_str}\nCorrected Message: {str1}\nBin w/Error: {data_part}\nCorrected Bin: {ans}\nError at bit: {error_pos}\nCRC Valid: {crc_valid}")
+                    else:
+                       ans = decode_hamming_code(decoded_msg)
+                       str1 = binToStr(ans)
+                       str1 = str1.replace('`', ' ')
+                       self.app.call_later(self.update_chat, f"Decoded Message: {str1}\nDecoded Bin: {decoded_msg}\nCRC Valid: {crc_valid}")
+
+
 
 
                 else:
@@ -305,7 +348,7 @@ class InitialScreen(Static):
 class ServerApp(App):
     """Manejo de la aplicacion"""
     CSS_PATH = "../style/chat.tcss"
-    BINDINGS = [("q", "quit", "Salir de la aplicación"), ("d", "toggle_dark", "Activar o desactivar el modo oscuro")]
+    BINDINGS = [("q", "quit", "Exit"), ("d", "toggle_dark", "Toggle Dark Mode")]
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -314,7 +357,7 @@ class ServerApp(App):
 
     def on_mount(self):
         self.title = "Chat Application"
-        self.sub_title = "IP: " + urName + " " + "PUERTO: " + str(port)
+        self.sub_title = "IP: " + urName + " " + "PORT: " + str(port)
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
