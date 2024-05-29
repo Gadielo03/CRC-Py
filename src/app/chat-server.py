@@ -4,6 +4,7 @@ import os
 import platform
 import re
 import socket
+import random
 
 from textual import events, on
 from textual.app import App, ComposeResult
@@ -11,6 +12,7 @@ from textual.containers import ScrollableContainer
 from textual.containers import Container
 from textual.screen import ModalScreen
 from textual.widgets import Button, Footer, Header, Input, Label, Static
+
 
 """Functions for the classes"""
 
@@ -63,6 +65,45 @@ def binToStr(decoded_msg) -> str:
     return ''.join(chr(num) for num in nums)
 
 
+def xor(a, b):
+    result = []
+    for i in range(1, len(b)):
+        if a[i] == b[i]:
+            result.append('0')
+        else:
+            result.append('1')
+    return ''.join(result)
+
+def mod2div(dividend, divisor):
+    pick = len(divisor)
+    tmp = dividend[0: pick]
+    while pick < len(dividend):
+        if tmp[0] == '1':
+            tmp = xor(divisor, tmp) + dividend[pick]
+        else:
+            tmp = xor('0' * pick, tmp) + dividend[pick]
+        pick += 1
+    if tmp[0] == '1':
+        tmp = xor(divisor, tmp)
+    else:
+        tmp = xor('0' * pick, tmp)
+    checkword = tmp
+    return checkword
+
+def encodeData(data, key):
+    l_key = len(key)
+    appended_data = data + '0' * (l_key - 1)
+    remainder = mod2div(appended_data, key)
+    codeword = data + remainder
+    return codeword
+
+def crc_check(input_bits, key):
+    l_key = len(key)
+    appended_data = input_bits + '0' * (l_key - 1)
+    remainder = mod2div(appended_data, key)
+    return '1' not in remainder
+
+
 def calculate_parity_bits(data):
     data = [int(bit) for bit in data]
     n = len(data)
@@ -107,43 +148,14 @@ def detect_and_correct(hamming_code):
 
     return ''.join(map(str, hamming_code))
 
-def xor(a, b):
-    result = []
-    for i in range(1, len(b)):
-        if a[i] == b[i]:
-            result.append('0')
-        else:
-            result.append('1')
-    return ''.join(result)
-
-def mod2div(dividend, divisor):
-    pick = len(divisor)
-    tmp = dividend[0: pick]
-    while pick < len(dividend):
-        if tmp[0] == '1':
-            tmp = xor(divisor, tmp) + dividend[pick]
-        else:
-            tmp = xor('0' * pick, tmp) + dividend[pick]
-        pick += 1
-    if tmp[0] == '1':
-        tmp = xor(divisor, tmp)
-    else:
-        tmp = xor('0' * pick, tmp)
-    checkword = tmp
-    return checkword
-
-def encodeData(data, key):
-    l_key = len(key)
-    appended_data = data + '0' * (l_key - 1)
-    remainder = mod2div(appended_data, key)
-    codeword = data + remainder
-    return codeword
-
-def crc_check(input_bits, key):
-    l_key = len(key)
-    appended_data = input_bits + '0' * (l_key - 1)
-    remainder = mod2div(appended_data, key)
-    return '1' not in remainder
+def ErrorData(data):
+    data_list = list(data)
+    number = random.randint(0, len(data_list) - 1)
+    if data_list[number] == '0':
+        data_list[number] = '1'
+    elif data_list[number] == '1':
+        data_list[number] = '0'
+    return ''.join(data_list)
 
 class DebugScreen(ModalScreen):
     def __init__(self, status: str):
@@ -198,17 +210,32 @@ class InitialScreen(Static):
                 key = "1001"
 
                 ans = encodeData(data, key)
-                st = ans.encode('utf-8')
+
+                #st = ans.encode('utf-8')
                 if self.client:
-                    self.client.send(st)
+                    if noise > 0:
+                        number = random.randint(1, 5)
+                        if number <= noise:
+                            errorAns = ErrorData(ans)
+                            self.client.send(errorAns.encode('utf-8'))
+                            chatContainer.mount(
+                                Container(
+                                    Label(str(ans) + '\n' + " w/Error: " + str(errorAns), classes="my-msg"),
+                                    classes="my-msg-cont")
+                            )
+                        else:
+                            self.client.send(ans.encode('utf-8'))
+                    else:
+                        self.client.send(ans.encode('utf-8'))
+                    #self.client.send(st)
                 else:
-                    self.app.push_screen(DebugScreen(f"Error al enviar el mensaje\n{e}"))
+                    self.app.push_screen(DebugScreen(f"Error al enviar el mensaje"))
 
 
 
                 chatContainer.mount(
                     Container(
-                        Label(msg, classes="my-msg"), 
+                        Label(msg, classes="my-msg"),
                         classes="my-msg-cont"
                     )
                 )
@@ -246,7 +273,9 @@ class InitialScreen(Static):
                     decoded_msg = msg.decode('utf-8')
                     str1 = binToStr(decoded_msg)
                     str1 = str1.replace('`', ' ')
-                    self.app.call_later(self.update_chat, str1 + "\n" +decoded_msg)
+                    self.app.call_later(self.update_chat, str1 + "\n" + decoded_msg)
+
+
                 else:
                     break
         except Exception as e:
@@ -299,9 +328,15 @@ if __name__ == "__main__":
     #Argument parsing
     entry = argparse.ArgumentParser("Server side of the crc app")
     entry.add_argument("--port", "-p", type=int, default=1337, help="Change the port of the server. Default is 1337")
+    entry.add_argument("--noise", "-n", type=int, default=0, help="Add noise to data transmission. Default is 0")
 
     #Parse the arguments
     args = entry.parse_args()
+    noise = args.noise
+    if noise < 0:
+        noise = 0
+    if noise > 5:
+        noise = 5
 
     #Socket setup
     urName = getIpAddress()
