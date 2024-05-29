@@ -12,6 +12,7 @@ import platform
 import re
 # Import socket module
 import socket
+import random
 
 def getWindowsIp() -> str:
     """Gets the IP address of the host in Windows"""
@@ -144,6 +145,15 @@ def crc_check(input_bits, key):
     remainder = mod2div(appended_data, key)
     return '1' not in remainder
 
+def ErrorData(data):
+    data_list = list(data)
+    number = random.randint(0, len(data_list) - 1)
+    if data_list[number] == '0':
+        data_list[number] = '1'
+    elif data_list[number] == '1':
+        data_list[number] = '0'
+    return ''.join(data_list)
+
 class ConnectScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         yield ScrollableContainer(
@@ -174,7 +184,7 @@ class ConnectScreen(ModalScreen):
             #s.bind((getIpAddress(), port))
             except Exception as e:
                 s.close()
-                self.app.push_screen(DebugScreen("Error al enviar el mensaje, Error: " + str(e)))
+                self.app.push_screen(DebugScreen(f"Error al enviar el mensaje, Error: \n {e}"))
 
 
 class DebugScreen(ModalScreen):
@@ -232,19 +242,34 @@ class InitialScreen(Static):
                 ans = encodeData(data, key)
                 # print("Encoded data to be sent to server in binary format :", ans)
                 # s.sendto(ans.encode(), (ip, port))
-                s.send(ans.encode('utf-8'))
+                msg = msg.replace('`', ' ')
+                if noise > 0:
+                    number = random.randint(1, 5)
+                    if number <= noise:
+                        errorAns = ErrorData(ans)
+                        s.send(errorAns.encode('utf-8'))
+                        chatContainer.mount(
+                            Container(
+                                Label(str(ans) + '\n' + " w/Error: " + str(errorAns), classes="my-msg"), classes="my-msg-cont")
+                        )
+                    else:
+                        s.send(ans.encode('utf-8'))
+                else:
+                    s.send(ans.encode('utf-8'))
+
+
                 # self.mount(ans.encode())
 
-                msg = msg.replace('`', ' ')
+
                 chatContainer.mount(
                     Container(
                         Label(msg, classes="my-msg"), classes="my-msg-cont")
                 )
 
-            except:
+            except Exception as e:
                 # close the connection
                 s.close()
-                self.app.push_screen(DebugScreen("Error al enviar el mensaje"))
+                self.app.push_screen(DebugScreen(f"Error al enviar el mensaje\n{e}"))
 
     async def awaiting_messages(self):
         """Asynchronously listens for incoming Server Messages"""
@@ -305,9 +330,15 @@ if __name__ == "__main__":
 #Argument parsing
     entry = argparse.ArgumentParser("Client side of the crc app")
     entry.add_argument("--port", "-p", type=int, default=0000, help="Change the port of the client. Default is 1111")
-
+    entry.add_argument("--noise", "-n", type=int,default=0,help="Add noise to data transmission. Default is 0")
     #Parse the arguments
     args = entry.parse_args()
+    noise = args.noise
+
+    if noise < 0:
+        noise = 0
+    if noise > 5:
+        noise = 5
 
     #Socket setup
     ip = getIpAddress()
