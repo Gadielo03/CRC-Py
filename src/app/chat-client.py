@@ -271,7 +271,8 @@ class InitialScreen(Static):
                         s.send(errorAns.encode('utf-8'))
                         chatContainer.mount(
                             Container(
-                                Label(f"{msg}\n{ans}\nw/Error: {errorAns}", classes="my-msg")
+                                Label(f"{msg}\n{ans}\nw/Error: {errorAns}", classes="my-msg"),
+                                classes="my-msg-cont"
                             )
                         )
                     else:
@@ -353,6 +354,7 @@ class ChatApp(App):
 
     def on_mount(self) -> None:
         self.title = "Chat Client Application"
+        self.sub_title = "NOISE: " + str(noise)
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark

@@ -363,7 +363,7 @@ class ServerApp(App):
 
     def on_mount(self):
         self.title = "Chat Application"
-        self.sub_title = "IP: " + urName + " " + "PORT: " + str(port)
+        self.sub_title = "IP: " + urName + " " + "PORT: " + str(port) + " " + "NOISE: " + str(noise)
 
     def action_toggle_dark(self) -> None:
         self.dark = not self.dark
