@@ -44,9 +44,9 @@ $ pip install -r requirements.txt
 #### Windows
 ```powershell
 :: Create the virtual environment
-python3.12 -m venv .venv 
+python3.12 -m venv .venv
 :: Activate the virtual environment
-.\myenv\bin\Activate
+.venv\bin\Activate
 :: Install dependencies
 pip install -r requirements.txt
 ```
