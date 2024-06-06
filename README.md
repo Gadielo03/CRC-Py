@@ -46,7 +46,7 @@ $ pip install -r requirements.txt
 :: Create the virtual environment
 python3.12 -m venv .venv 
 :: Activate the virtual environment
-.venv\Scripts\activate
+.\myenv\bin\Activate
 :: Install dependencies
 pip install -r requirements.txt
 ```
