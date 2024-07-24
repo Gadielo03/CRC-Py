@@ -322,7 +322,9 @@ class InitialScreen(Static):
                             self.app.call_later(self.update_chat, f"Decoded Message: {str1}\nDecoded Bin: {decoded_msg}\nCRC Valid: {crc_valid}")
                     else:
                         break
-
+            except WindowsError :
+                self.app.call_later(self.update_chat, f"Esperando Conexion..")
+                await asyncio.sleep(15)
             except Exception as e:
                 self.app.call_later(self.update_chat, f"Error al recibir el mensaje\n{e}")
                 await asyncio.sleep(5)
